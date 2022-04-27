@@ -1,0 +1,45 @@
+version: "3"
+
+services:
+  croval01:
+    build:
+      context: ./cronode
+      dockerfile: Dockerfile
+    image: bb-team/cronode
+    container_name: croval01
+    ports:
+      - "26656:26656"
+      - "26657:26657"
+      - "1317:1317"
+      - "9090:9090"
+      - "6060:6060"   
+    volumes:
+      - ./localnet-setup/croval01:/root:Z
+      - ./environment.cronode:/etc/environment:ro
+
+
+  croscout:
+    build:
+      context: ./croscout
+      dockerfile: Dockerfile
+      args:
+        BLOCKSCOUT_VERSION: master
+    image: bb-team/croscout
+    container_name: croscout01
+    ports:
+      - "80:4000"    
+    volumes:
+      - ./localnet-setup/croscout01:/root:Z
+      - ./environment.croscout:/etc/environment:ro
+    links:
+      - croval01
+      - scoutdb
+
+  scoutdb:
+      restart: always
+      image: postgres:bullseye
+      container_name: scoutdb
+
+
+networks:
+  localnet:

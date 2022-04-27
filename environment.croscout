@@ -1,0 +1,8 @@
+
+
+MIX_ENV=production
+LOG=${LOG:-croval01.log}
+
+
+DATABASE_URL=$DATABASE_URL/$DB_NAME:ssl=true
+DEBIAN_FRONTEND=noninteractive
