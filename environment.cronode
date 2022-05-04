@@ -4,13 +4,6 @@ LANG=en_US.UTF-8
 LANGUAGE=en_US
 LC_ALL=en_US.UTF-8
 LC_CTYPE=en_US.UTF-8
-ENV MIX_ENV=production
+MIX_ENV=production
 
 LOG=${LOG:-croval01.log}
-KEY="TestKeyName"
-CHAINID="1337"
-MONIKER="conos-bb-team-1"
-KEYRING="test"
-KEYALGO="eth_secp256k1"
-LOGLEVEL="info"
-KEYRING_NAME="test"

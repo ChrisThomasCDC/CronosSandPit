@@ -1,22 +1,78 @@
 version: "3"
 
 services:
+  traefik:
+    image: traefik
+    container_name: revproxy
+    command: >
+        --serversTransport.insecureSkipVerify=true
+        --api.insecure=true
+        --api=true
+        --log=true
+        --log.level=DEBUG
+        --accessLog=true
+        --accessLog.filePath=/traefik.log
+        --accessLog.bufferingSize=100
+        --providers.docker=true
+        --providers.docker.endpoint=unix:///var/run/docker.sock
+        --providers.docker.exposedbydefault=false
+        --entrypoints.http.address=:80/tcp
+        --entrypoints.https.address=:443/tcp
+        --entrypoints.web.http.redirections.entrypoint.to=https
+        --entrypoints.web.http.redirections.entrypoint.scheme=https
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "80:80" #http
+      - "443:443" #http
+      - "8080:8080" #web ui
+    volumes:
+    # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.noodletestnet.local`)"
+    depends_on:
+      - scoutdb  # Start the database first, give it a chance to boot
+      - croval01 # Start the validator so we are producing blocks
+
   croval01:
     build:
       context: ./cronode
       dockerfile: Dockerfile
     image: bb-team/cronode
     container_name: croval01
+    environment:
+      KEY: "TestKeyName"
+      CHAINID: "bbteam_1337-1"
+      MONIKER: "conos-bb-team-1"
+      KEYRING: "test"
+      LOGLEVEL: "info"
+      EMPTY_BLOCKS: "true"
+      NODE_NAME: "croval01"
     ports:
       - "26656:26656"
       - "26657:26657"
       - "1317:1317"
+      - "8585:8585"
       - "9090:9090"
       - "6060:6060"   
     volumes:
-      - ./localnet-setup/croval01:/root:Z
+      - ./localnet-setup/croval01:/home/nodeusr:Z
       - ./environment.cronode:/etc/environment:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.croval01.rule=Host(`croval01.noodletestnet.local`)"
 
+  logserver:
+    container_name: logserver
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.logserver.rule=Host(`logs.noodletestnet.local`)"
+      - "traefik.http.services.logserver.loadbalancer.server.port=8080"
 
   croscout:
     build:
@@ -25,21 +81,39 @@ services:
       args:
         BLOCKSCOUT_VERSION: master
     image: bb-team/croscout
-    container_name: croscout01
-    ports:
-      - "80:4000"    
+    container_name: croscout01     
+    environment:
+      DATABASE_URL: "postgresql://postgres:Password123@scoutdb:5432/blockscout:ssl=false"
+      ETHEREUM_JSONRPC_HTTP_URL: "croval01:8585"
+      ETHEREUM_JSONRPC_TRACE_URL: "croval01:8585"
+      ETHEREUM_JSONRPC_WS_URL: "croval01:8586"
+      BLOCKSCOUT_HOST: "localhost"
+      CHECK_ORIGIN: false
+      ENABLE_TXS_STATS: false
+      SHOW_TXS_CHART: false   
     volumes:
-      - ./localnet-setup/croscout01:/root:Z
+      - ./localnet-setup/croscout01:/home/scoutusr:Z
       - ./environment.croscout:/etc/environment:ro
+    depends_on:
+      - scoutdb
+      - traefik
+      - logserver
     links:
       - croval01
       - scoutdb
+      - traefik
+      - logserver
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.explorer.rule=Host(`explorer.noodletestnet.local`)"
+      - "traefik.http.services.explorer.loadbalancer.server.port=4000"
 
   scoutdb:
       restart: always
       image: postgres:bullseye
       container_name: scoutdb
-
+      environment:
+        POSTGRES_PASSWORD: Password123
 
 networks:
   localnet:
