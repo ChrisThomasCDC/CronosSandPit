@@ -4,6 +4,6 @@ LANG=en_US.UTF-8
 LANGUAGE=en_US
 LC_ALL=en_US.UTF-8
 LC_CTYPE=en_US.UTF-8
-MIX_ENV=production
+MIX_ENV=prod
 
 LOG=${LOG:-croval01.log}

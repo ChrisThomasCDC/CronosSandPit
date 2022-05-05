@@ -21,6 +21,40 @@
 #docker build --no-cache --build-arg BLOCKSCOUT_VERSION=master -t bb-team/croscout .
 
 
+# Manual Standup (Without Compose)
+
+# Run DB
+        #docker run --name scoutdb -e POSTGRES_PASSWORD=Password123 -d postgres
+        #sudo docker inspect scoutdb | jq -r '.[].NetworkSettings.Networks.bridge.IPAddress'
+
+        #if the IP is not 'scoutdb' then replace below with whatever is there
+
+        # sed -i "s/scoutdb/IP/g" ./debug.environment.croscout
+
+
+# Run Validator
+    #docker run --name croval01 -v $(PWD)/debug.environment.cronode:/etc/environment:ro -d bb-team/cronode
+    #sudo docker inspect croval01 | jq -r '.[].NetworkSettings.Networks.bridge.IPAddress'
+
+    #if the IP is not 'croval01' then replace below with whatever is there
+
+    # sed -i "s/croval01/IP/g" ./debug.environment.croscout
+
+# Run Blockscout
+
+    # Run Bash Shell, Pre-Init
+        #docker run --name scout01 -v $(PWD)/debug.environment.croscout:/etc/environment:ro --rm -it --entrypoint bash bb-team/croscout
+
+    # Run Normally
+        #docker run --name scout01 -v $(PWD)/debug.environment.croscout:/etc/environment:ro --rm -it bb-team/croscout
+
+
+# Cleanup
+    #docker stop scoutdb && docker rm scoutdb
+    #docker stop scout01 && docker rm scout01
+    #docker stop croval01 && docker rm croval01
+
+
 
 FROM elixir
 

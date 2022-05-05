@@ -7,7 +7,7 @@ export MIX_ENV=prod
 
 if [ ! -v CHAIN_NAME ]
   then
-    export CHAIN_NAME='sokol'
+    export CHAIN_NAME='CRONOS'
 fi
 
 if [ ! -v DB_NAME ]

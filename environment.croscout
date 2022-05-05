@@ -1,8 +1,16 @@
 
 
-MIX_ENV=production
+MIX_ENV=prod
 LOG=${LOG:-croval01.log}
 
 
 
 DEBIAN_FRONTEND=noninteractive
+DATABASE_URL: "postgresql://postgres:Password123@scoutdb:5432/blockscout:ssl=false"
+ETHEREUM_JSONRPC_HTTP_URL: "croval01:8585"
+ETHEREUM_JSONRPC_TRACE_URL: "croval01:8585"
+ETHEREUM_JSONRPC_WS_URL: "croval01:8586"
+BLOCKSCOUT_HOST: "localhost"
+CHECK_ORIGIN: "false"
+ENABLE_TXS_STATS: "false"
+SHOW_TXS_CHART: "false"

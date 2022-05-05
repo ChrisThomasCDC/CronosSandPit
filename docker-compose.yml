@@ -88,9 +88,9 @@ services:
       ETHEREUM_JSONRPC_TRACE_URL: "croval01:8585"
       ETHEREUM_JSONRPC_WS_URL: "croval01:8586"
       BLOCKSCOUT_HOST: "localhost"
-      CHECK_ORIGIN: false
-      ENABLE_TXS_STATS: false
-      SHOW_TXS_CHART: false   
+      CHECK_ORIGIN: "false"
+      ENABLE_TXS_STATS: "false"
+      SHOW_TXS_CHART: "false"
     volumes:
       - ./localnet-setup/croscout01:/home/scoutusr:Z
       - ./environment.croscout:/etc/environment:ro

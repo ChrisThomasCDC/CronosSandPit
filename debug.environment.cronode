@@ -1,0 +1,17 @@
+HOSTNAME=$HOSTNAME
+
+LANG=en_US.UTF-8
+LANGUAGE=en_US
+LC_ALL=en_US.UTF-8
+LC_CTYPE=en_US.UTF-8
+MIX_ENV=production
+
+LOG=${LOG:-croval01.log}
+
+KEY="TestKeyName"
+CHAINID="bbteam_1337-1"
+MONIKER="conos-bb-team-1"
+KEYRING="test"
+LOGLEVEL="info"
+EMPTY_BLOCKS="true"
+NODE_NAME="croval01"
