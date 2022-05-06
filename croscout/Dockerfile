@@ -22,6 +22,8 @@
 
 
 # Manual Standup (Without Compose)
+# the following steps will walk you through spinning up all dependant services ready to run blockscout.
+
 
 # Run DB
         #docker run --name scoutdb -e POSTGRES_PASSWORD=Password123 -d postgres
@@ -33,6 +35,8 @@
 
 
 # Run Validator
+    # Point it to any CRO node if you wish, the below builds a fresh testnet for you.
+    
     #docker run --name croval01 -v $(PWD)/debug.environment.cronode:/etc/environment:ro -d bb-team/cronode
     #sudo docker inspect croval01 | jq -r '.[].NetworkSettings.Networks.bridge.IPAddress'
 
