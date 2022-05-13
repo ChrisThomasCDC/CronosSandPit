@@ -33,8 +33,9 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik.rule=Host(`traefik.noodletestnet.local`)"
     depends_on:
-      - scoutdb  # Start the database first, give it a chance to boot
       - croval01 # Start the validator so we are producing blocks
+      - scoutdb
+
 
   croval01:
     build:
@@ -54,7 +55,8 @@ services:
       - "26656:26656"
       - "26657:26657"
       - "1317:1317"
-      - "8585:8585"
+      - "8545:8545"
+      - "8546:8546"      
       - "9090:9090"
       - "6060:6060"   
     volumes:
@@ -114,6 +116,3 @@ services:
       container_name: scoutdb
       environment:
         POSTGRES_PASSWORD: Password123
-
-networks:
-  localnet:

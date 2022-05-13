@@ -14,17 +14,11 @@
 #   https://github.com/SurfingNerd/blockscout-docker-compose/blob/main/Dockerfile
 #   https://github.com/prelegalwonder/Docker-poa-blockscout/blob/master/docker/Dockerfile
 
-
 # This is a ubuntu minimal base because i want to install tools as its for a devnet and pwnage purpose
 
 # Example usage
 #docker run --rm -it --entrypoint bash bb-team/croscout
 #docker build --no-cache --build-arg BLOCKSCOUT_VERSION=master -t bb-team/croscout .
-
-#docker build --platform arm64v8 --no-cache --build-arg BLOCKSCOUT_VERSION=master -t bb-team/croscout .
-
-
-
 
 
 # Manual Standup (Without Compose)
@@ -65,8 +59,8 @@
     #docker stop croval01 && docker rm croval01
 
 
-# this is for a MAC M1 Docker image (swap to "Elixir" for an amd64 image)
-FROM arm64v8/elixir
+
+FROM elixir
 
 ARG BLOCKSCOUT_VERSION=master
 ENV DEBIAN_FRONTEND=noninteractive
@@ -88,14 +82,11 @@ EXPOSE 4000
 RUN    apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get update \
-    && apt-get install -yqq netcat curl gcc g++ make libtool automake supervisor autoconf python3 locales jq cargo
-RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - \ 
+    && apt-get install -yqq netcat curl gcc g++ make libtool automake supervisor locales jq cargo \
+    && curl -sL https://deb.nodesource.com/setup_16.x | bash - \ 
     && apt-get update \
     && apt install -yqq nodejs \
     && npm install -g brunch
-
-# Add local node module binaries to PATH
-ENV PATH=./node_modules/.bin:$PATH
 
 # Create Application User 
 RUN    mkdir -p /opt/app \
@@ -120,31 +111,47 @@ RUN   git clone https://github.com/crypto-org-chain/cronos-blockscout.git /opt/a
    && git checkout ${BLOCKSCOUT_VERSION} \
    && grep -Ri ec2-user * | cut -f1 -d: | xargs -i{} sed -i 's/ec2-user/scoutusr/g' {}
 
-# Ensure latest versions of Hex/Rebar are installed on build
-# update rustler package or keccak wont compile 
+
+#########
+#########
+# BaseDocker is a repeatable image up to this point
+# docker build --no-cache --build-arg BLOCKSCOUT_VERSION=master -t bb-team/croscoutbase -f BaseDocker .   
+
+# Install Node.js and Elixir dependencies
+# [CT Apr-22]  added package auto updates
+RUN   cd apps/block_scout_web/assets && npm update --no-save && npm install; cd - \
+   && cd apps/explorer && npm update --no-save && npm install; cd - 
+
+
+# Install hex for updates
+# Install rebar for installing
+# update rustler package or keccak wont compile   
 RUN mix local.hex --force && mix local.rebar --force && mix deps.get && mix deps.update rustler
 
+
+#########
+#########
+# BaseDocker is a repeatable image up to this point
+# docker build --no-cache --build-arg BLOCKSCOUT_VERSION=master -t bb-team/croscoutbase -f BaseDocker .   
+
+
+
 # package is too old on hex so pull it down and compile
+
 RUN rm -rf deps/ex_keccak \
     && git clone https://github.com/ayrat555/ex_keccak /opt/app/deps/ex_keccak \
     && cd deps/ex_keccak/ \
-    && mix deps.get && cd - && mix deps.update ex_keccak
+    && mix do deps.get compile; cd - && mix deps.update ex_keccak
 
-# Run forderground build and phoenix digest
-RUN mix compile
+RUN mix do deps.compile, compile  \
+    && mkdir -p /opt/app/_build/prod/lib/explorer_web/priv/static/ \
+    && mix phx.digest
 
-# Add blockscout npm deps
-RUN cd apps/block_scout_web/assets/ && \
-    npm install && \
-    npm run deploy && \
-    cd -
+RUN cd apps/explorer && npm install && cd - && chown -R scoutusr:scoutusr /opt/app
 
-RUN cd apps/explorer/ && \
-    npm install 
+# Enable HTTPS in development. The Phoenix server only runs with HTTPS.
+RUN cd apps/block_scout_web; mix phx.gen.cert ${BLOCKSCOUT_DNS} ${BLOCKSCOUT_FQDN}; cd -
 
-RUN mix deps.get
-
-RUN mix phx.digest
 
 # Switch back to root for system config tasks
 USER root
@@ -155,5 +162,3 @@ COPY entrypoint.sh /opt/app/entrypoint.sh
 RUN chmod +x /opt/app/entrypoint.sh
 # Set CMD Process
 CMD ["/opt/app/entrypoint.sh"]
-
-

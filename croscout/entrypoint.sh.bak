@@ -46,31 +46,16 @@ if [ ! -v PORT ]
     export PORT=4000
 fi
 
+/opt/app/bin/deployment/migrate 
 
-echo $(pwd)
-
-set -e
-
-echo "waiting 4 seconds for DB..."
-sleep 4
-
-# echo "verifying database availability..."
-
-
-# bash-5.0# nc -vzw1 172.17.0.1 5432
-# 172.17.0.1 (172.17.0.1:5432) open
-
-until PGPASSWORD=$DB_PASS psql -h "$DB_USER" -U "$DB_HOST" -c '\q'; do
-  >&2 echo "Postgres is unavailable - sleeping"
-  sleep 1
-done
-
-echo "Creating DB...."
-mix ecto.create
-echo "DB created!"
-echo "Creating Tables...."
-mix ecto.migrate
-echo "Tables created!"
-
-echo "Starting Server...."
-mix phx.server
+if [ $? -eq 0 ]
+  then
+  #/opt/blockscout/bin/deployment/start
+  source /etc/environment
+  
+  echo "Starting Blockscout.."
+  
+  mix phx.server
+else
+  echo "Migration failed, see output."
+fi
