@@ -8,10 +8,12 @@ MIX_ENV=production
 
 LOG=${LOG:-croval01.log}
 
-KEY="TestKeyName"
-CHAINID="bbteam_1337-1"
-MONIKER="conos-bb-team-1"
+COIN=cro
+KEY="testkeyname"
+CHAIN_ID="bbteam_1337-1"
 KEYRING="test"
 LOGLEVEL="info"
-EMPTY_BLOCKS="true"
+ADDR_BOOK_STRICT=false
+CREATE_EMPTY_BLOCKS=true
+CREATE_EMPTY_BLOCKS_INTERVAL=60s
 NODE_NAME="croval01"

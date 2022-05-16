@@ -1,0 +1,89 @@
+
+
+# NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       
+# NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE   
+# NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE   
+# NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE   
+# NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE   
+# NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE       NOT FOR PRODUCTION USE   
+
+
+
+
+# Reference Material (Prior Works)
+#   https://github.com/SurfingNerd/blockscout-docker-compose/blob/main/Dockerfile
+#   https://github.com/prelegalwonder/Docker-poa-blockscout/blob/master/docker/Dockerfile
+
+
+# This is a ubuntu minimal base because i want to install tools as its for a devnet and pwnage purpose
+
+# Example usage
+#docker run --rm -it --entrypoint bash bb-team/croscout
+#docker build --no-cache --build-arg BLOCKSCOUT_VERSION=master -t bb-team/croscout .
+
+#docker build --platform arm64v8 --no-cache --build-arg BLOCKSCOUT_VERSION=master -t bb-team/croscout .
+
+
+#  docker run --name scoutdb -e POSTGRES_PASSWORD=Password123 -d postgres
+#docker run --name croval01 -v $(pwd)/debug.environment.cronode:/etc/environment:ro -d bb-team/cronode
+
+
+#docker build --no-cache -t bb-team/croscout -f Dockerfile.Test .
+
+# Manual Standup (Without Compose)
+# the following steps will walk you through spinning up all dependant services ready to run blockscout.
+
+
+# Run DB
+        #docker run --name scoutdb -e POSTGRES_PASSWORD=Password123 -d postgres
+        #sudo docker inspect scoutdb | jq -r '.[].NetworkSettings.Networks.bridge.IPAddress'
+
+        #if the IP is not 'scoutdb' then replace below with whatever is there
+
+        # sed -i "s/scoutdb/IP/g" ./debug.environment.croscout
+
+
+# Run Validator
+    # Point it to any CRO node if you wish, the below builds a fresh testnet for you.
+    
+    #docker run --name croval01 -v $(pwd)/debug.environment.cronode:/etc/environment:ro -d bb-team/cronode
+    #sudo docker inspect croval01 | jq -r '.[].NetworkSettings.Networks.bridge.IPAddress'
+
+    #if the IP is not 'croval01' then replace below with whatever is there
+
+    # sed -i "s/croval01/IP/g" ./debug.environment.croscout
+
+# Run Blockscout
+
+    # Run Bash Shell, Pre-Init
+        #docker run --name scout01 -v $(pwd)/debug.environment.croscout:/etc/environment:ro --rm -it --entrypoint bash bb-team/croscout
+
+    # Run Normally
+        #docker run --name scout01 -v $(pwd)/debug.environment.croscout:/etc/environment:ro --rm -it bb-team/croscout
+
+
+# Cleanup
+    #docker stop scoutdb && docker rm scoutdb
+    #docker stop scout01 && docker rm scout01
+    #docker stop croval01 && docker rm croval01
+
+
+# this is for a MAC M1 Docker image (swap to "Elixir" for an amd64 image)
+FROM blockscout/blockscout
+
+ENV DATABASE_URL: "postgresql://postgresuser:password@postgressdb:5432/blockscout:ssl=false"
+
+#https://docs.blockscout.com/for-developers/information-and-settings/client-settings-parity-geth-ganache
+ENV ETHEREUM_JSONRPC_VARIANT=parity
+ENV ETHEREUM_JSONRPC_HTTP_URL=http://localhost:8545
+ENV ETHEREUM_JSONRPC_TRACE_URL=http://localhost:8545
+ENV ETHEREUM_JSONRPC_WS_URL=http://localhost:8546
+
+EXPOSE 4000
+
+COPY entrypoint.sh /opt/app/entrypoint.sh
+RUN chmod +x /opt/app/entrypoint.sh
+# Set CMD Process
+CMD ["/opt/app/entrypoint.sh"]
+
+

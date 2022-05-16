@@ -1,5 +1,13 @@
 version: "3"
 
+#docker stop $(docker ps -a -q)
+#docker rm $(docker ps -a -q)
+
+
+
+# This repo looks interesting, investigate further
+#https://github.com/RyanHendricks/docker-regen
+
 services:
   traefik:
     image: traefik
@@ -18,101 +26,138 @@ services:
         --providers.docker.exposedbydefault=false
         --entrypoints.http.address=:80/tcp
         --entrypoints.https.address=:443/tcp
+
+        --entrypoints.croval01-tendermint-p2p.address=:26656     
+        --entrypoints.croval01-tendermint-rpc.address=:26657
+        --entrypoints.croval01-tendermint-api.address=:1317
+        --entrypoints.croval01-tendermint-grpc.address=:9090
+        --entrypoints.croval01-tendermint-pprof.address=:6060
+        --entrypoints.croval01-cronos-jsonrpc.address=:8545
+        --entrypoints.croval01-cronos-ws.address=:8546
+
         --entrypoints.web.http.redirections.entrypoint.to=https
         --entrypoints.web.http.redirections.entrypoint.scheme=https
     security_opt:
       - no-new-privileges:true
     ports:
       - "80:80" #http
-      - "443:443" #http
+      - "443:443" #https
       - "8080:8080" #web ui
+      - "26656:26656" #croval01-tendermint-p2p
+      - "26657:26657" #croval01-tendermint-rpc
+      - "1317:1317" # croval01-tendermint-api
+      - "8545:8545" # croval01-tendermint-grpc
+      - "8546:8546" # croval01-cronos-ws 
+      - "9090:9090" # croval01-tendermint-grpc
+      - "6060:6060" # croval01-tendermint-pprof       
     volumes:
     # So that Traefik can listen to the Docker events
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro # ENSURE READ-ONLY
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik.rule=Host(`traefik.noodletestnet.local`)"
     depends_on:
       - croval01 # Start the validator so we are producing blocks
-      - scoutdb
 
-
-  croval01:
-    build:
-      context: ./cronode
-      dockerfile: Dockerfile
-    image: bb-team/cronode
-    container_name: croval01
-    environment:
-      KEY: "TestKeyName"
-      CHAINID: "bbteam_1337-1"
-      MONIKER: "conos-bb-team-1"
-      KEYRING: "test"
-      LOGLEVEL: "info"
-      EMPTY_BLOCKS: "true"
-      NODE_NAME: "croval01"
-    ports:
-      - "26656:26656"
-      - "26657:26657"
-      - "1317:1317"
-      - "8545:8545"
-      - "8546:8546"      
-      - "9090:9090"
-      - "6060:6060"   
-    volumes:
-      - ./localnet-setup/croval01:/home/nodeusr:Z
-      - ./environment.cronode:/etc/environment:ro
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.croval01.rule=Host(`croval01.noodletestnet.local`)"
-
+  # useful log viewer for running and crashed containers
   logserver:
     container_name: logserver
     image: amir20/dozzle:latest
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro # ENSURE READ-ONLY
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.logserver.rule=Host(`logs.noodletestnet.local`)"
       - "traefik.http.services.logserver.loadbalancer.server.port=8080"
 
-  croscout:
+
+  # Cronos Validator, we just want to produce blocks
+  croval01:
     build:
-      context: ./croscout
+      context: ./Images/cronode
       dockerfile: Dockerfile
-      args:
-        BLOCKSCOUT_VERSION: master
-    image: bb-team/croscout
-    container_name: croscout01     
+    image: bb-team/cronode
+    container_name: croval01
     environment:
-      DATABASE_URL: "postgresql://postgres:Password123@scoutdb:5432/blockscout:ssl=false"
-      ETHEREUM_JSONRPC_HTTP_URL: "croval01:8585"
-      ETHEREUM_JSONRPC_TRACE_URL: "croval01:8585"
-      ETHEREUM_JSONRPC_WS_URL: "croval01:8586"
-      BLOCKSCOUT_HOST: "localhost"
-      CHECK_ORIGIN: "false"
-      ENABLE_TXS_STATS: "false"
-      SHOW_TXS_CHART: "false"
+      KEY: "TestKeyName"
+      CHAIN_ID: "bbteam_1337-1"
+      KEYRING: "test"
+      LOGLEVEL: "info"
+      NODE_NAME: "croval01"
+      CREATE_EMPTY_BLOCKS: "true"
+      CREATE_EMPTY_BLOCKS_INTERVA: "60s"
+      ADDR_BOOK_STRICT: "false"
     volumes:
-      - ./localnet-setup/croscout01:/home/scoutusr:Z
-      - ./environment.croscout:/etc/environment:ro
+      - ./localnet-setup/croval01:/home/nodeusr:Z
+      - ./environment.cronode:/etc/environment:ro
+    labels:
+      traefik.enable: true
+      traefik.http.routers.croval01.rule: Host(`croval01.noodletestnet.local`)
+      # Setup both plaintext and TLS TCP passthrough
+      traefik.tcp.routers.croval01-tendermint-p2p-insecure.rule: HostSNI(`*`)
+      traefik.tcp.routers.croval01-tendermint-p2p-insecure.entrypoints: croval01-tendermint-p2p
+      traefik.tcp.routers.croval01-tendermint-p2p-secure.rule: HostSNI(`croval01.noodletestnet.local`)
+      traefik.tcp.routers.croval01-tendermint-p2p-secure.tls: true
+      traefik.tcp.routers.croval01-tendermint-p2p-secure.entrypoints: croval01-tendermint-p2p
+      #
+      traefik.tcp.routers.croval01-tendermint-rpc-insecure.rule: HostSNI(`*`)
+      traefik.tcp.routers.croval01-tendermint-rpc-insecure.entrypoints: croval01-tendermint-rpc
+      traefik.tcp.routers.croval01-tendermint-rpc-secure.rule: HostSNI(`croval01.noodletestnet.local`)
+      traefik.tcp.routers.croval01-tendermint-rpc-secure.tls: true
+      traefik.tcp.routers.croval01-tendermint-rpc-secure.entrypoints: croval01-tendermint-rpc
+      #
+      traefik.tcp.routers.croval01-tendermint-api-insecure.rule: HostSNI(`*`)
+      traefik.tcp.routers.croval01-tendermint-api-insecure.entrypoints: croval01-tendermint-api
+      traefik.tcp.routers.croval01-tendermint-api-secure.rule: HostSNI(`croval01.noodletestnet.local`)
+      traefik.tcp.routers.croval01-tendermint-api-secure.tls: true
+      traefik.tcp.routers.croval01-tendermint-api-secure.entrypoints: croval01-tendermint-api
+      #
+      traefik.tcp.routers.croval01-tendermint-grpc-insecure.rule: HostSNI(`*`)
+      traefik.tcp.routers.croval01-tendermint-grpc-insecure.entrypoints: croval01-tendermint-grpc
+      traefik.tcp.routers.croval01-tendermint-grpc-secure.rule: HostSNI(`croval01.noodletestnet.local`)
+      traefik.tcp.routers.croval01-tendermint-grpc-secure.tls: true
+      traefik.tcp.routers.croval01-tendermint-grpc-secure.entrypoints: croval01-tendermint-grpc            
+      #
+      traefik.tcp.routers.croval01-tendermint-pprof-insecure.rule: HostSNI(`*`)
+      traefik.tcp.routers.croval01-tendermint-pprof-insecure.entrypoints: croval01-tendermint-pprof
+      traefik.tcp.routers.croval01-tendermint-pprof-secure.rule: HostSNI(`croval01.noodletestnet.local`)
+      traefik.tcp.routers.croval01-tendermint-pprof-secure.tls: true
+      traefik.tcp.routers.croval01-tendermint-pprof-secure.entrypoints: croval01-tendermint-pprof       
+      #
+      traefik.tcp.routers.croval01-cronos-jsonrpc-insecure.rule: HostSNI(`*`)
+      traefik.tcp.routers.croval01-cronos-jsonrpc-insecure.entrypoints: croval01-cronos-jsonrpc
+      traefik.tcp.routers.croval01-cronos-jsonrpc-secure.rule: HostSNI(`croval01.noodletestnet.local`)
+      traefik.tcp.routers.croval01-cronos-jsonrpc-secure.tls: true
+      traefik.tcp.routers.croval01-cronos-jsonrpc-secure.entrypoints: croval01-cronos-jsonrpc              
+      #
+      traefik.tcp.routers.croval01-cronos-ws-insecure.rule: HostSNI(`*`)
+      traefik.tcp.routers.croval01-cronos-ws-insecure.entrypoints: croval01-cronos-ws
+      traefik.tcp.routers.croval01-cronos-ws-secure.rule: HostSNI(`croval01.noodletestnet.local`)
+      traefik.tcp.routers.croval01-cronos-ws-secure.tls: true
+      traefik.tcp.routers.croval01-cronos-ws-secure.entrypoints: croval01-cronos-ws                    
+
+
+  crogorc01:
+    build:
+      context: ./Images/gravity-orchestrator
+      dockerfile: Dockerfile
+    image: bb-team/gorc
+    container_name: crogorc01
+    environment:
+      KEY: "TestKeyName"
     depends_on:
-      - scoutdb
-      - traefik
-      - logserver
-    links:
-      - croval01
-      - scoutdb
-      - traefik
-      - logserver
+      - croval01 # No point bringing the gorc up if the validator isnt live
+
+  # Nethereum Explorer, Blazor WASM - Client Side Explorer Talks To Any EVM Chain 
+  # (One instance for multiple chains, uses local storage to store networks)
+  croexplorer:
+    build:
+      context: ./Images/explorer
+      dockerfile: Dockerfile # yes i know im using nginx in the image when i dont need to, it makes the image standalone
+    image: bb-team/lightexplorer
+    container_name: croexplorer
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.explorer.rule=Host(`explorer.noodletestnet.local`)"
-      - "traefik.http.services.explorer.loadbalancer.server.port=4000"
+      - "traefik.http.routers.croexplorer.rule=Host(`explorer.noodletestnet.local`)"
+      - "traefik.http.services.croexplorer.loadbalancer.server.port=80"
 
-  scoutdb:
-      restart: always
-      image: postgres:bullseye
-      container_name: scoutdb
-      environment:
-        POSTGRES_PASSWORD: Password123
