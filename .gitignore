@@ -1,4 +1,5 @@
 .DS_Store
 localnet-setup/croval01/*.*
+localnet-setup/croval01/config/*.*
 localnet-setup/croscout01/*.*
 localnet-setup/cronode01/*.*
