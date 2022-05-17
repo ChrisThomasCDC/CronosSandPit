@@ -17,18 +17,17 @@
 
 # Example Useage:
 
-#docker run --rm -it --entrypoint bash bb-team/cronode
+# docker run --rm -it --entrypoint bash bb-team/cronode
 
-#docker run --name croval01 -it --entrypoint bash -v $(pwd)/debug.environment.cronode:/etc/environment:ro bb-team/cronode
+#docker run --rm -it --entrypoint bash -v $(pwd)/debug.environment.cronode:/etc/environment:ro bb-team/cronode
+#docker run --user 0 --rm -it --entrypoint bash -v $(pwd)/debug.environment.cronode:/etc/environment:ro bb-team/cronode
 
-#docker run --name croval01 -v $(pwd)/debug.environment.cronode:/etc/environment:ro -d bb-team/cronode
+# docker run --name croval01 -v $(pwd)/debug.environment.cronode:/etc/environment:ro -d bb-team/cronode
 
-#   docker run --name croval01 -e LOGLEVEL=info -v $(pwd)/Images/cronode/supervisor/conf.d/supervisord.cronode.conf:/etc/supervisor/conf.d/supervisord.cronode.conf:ro -v $(pwd)/debug.environment.cronode:/etc/environment:ro -d bb-team/cronode
-
-
+# docker run --name croval01 -e LOGLEVEL=info -v $(pwd)/Images/cronode/supervisor/conf.d/supervisord.cronode.conf:/etc/supervisor/conf.d/supervisord.cronode.conf:ro -v $(pwd)/debug.environment.cronode:/etc/environment:ro -d bb-team/cronode
 
 
-#docker build --no-cache --build-arg NODE_VERSION=release/v0.7.x -t bb-team/cronode .
+#  docker build --no-cache --build-arg NODE_VERSION=release/v0.7.x -t bb-team/cronode .
 
 FROM golang:bullseye AS build-env
 
@@ -57,6 +56,9 @@ FROM golang:bullseye
 #TRACE="--trace"
 ENV TRACE=""
 ENV LOGLEVEL=info
+ENV NUM_TEST_ACCOUNTS=3
+ENV TEST_ACCOUNT_BAL=1000000000000000000
+ENV COIN=cro
 
 # Prod Deps
 RUN apt update && apt-get upgrade -y && apt install ca-certificates jq bc supervisor -y

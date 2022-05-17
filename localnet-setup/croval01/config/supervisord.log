@@ -44,3 +44,17 @@
 2022-05-16 06:28:28,554 WARN received SIGTERM indicating exit request
 2022-05-16 06:28:28,554 INFO waiting for cronode to die
 2022-05-16 06:28:28,679 INFO stopped: cronode (exit status 1)
+2022-05-17 05:50:12,073 INFO Included extra file "/etc/supervisor/conf.d/supervisord.cronode.conf" during parsing
+2022-05-17 05:50:12,075 INFO supervisord started with pid 1
+2022-05-17 05:50:13,080 INFO spawned: 'cronode' with pid 111
+2022-05-17 05:50:14,293 INFO success: cronode entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2022-05-17 08:40:37,313 WARN received SIGTERM indicating exit request
+2022-05-17 08:40:37,314 INFO waiting for cronode to die
+2022-05-17 08:40:37,332 INFO stopped: cronode (exit status 0)
+2022-05-17 09:05:18,056 INFO Included extra file "/etc/supervisor/conf.d/supervisord.cronode.conf" during parsing
+2022-05-17 09:05:18,058 INFO supervisord started with pid 1
+2022-05-17 09:05:19,061 INFO spawned: 'cronode' with pid 112
+2022-05-17 09:05:20,299 INFO success: cronode entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2022-05-17 09:06:48,701 WARN received SIGTERM indicating exit request
+2022-05-17 09:06:48,702 INFO waiting for cronode to die
+2022-05-17 09:06:49,718 INFO stopped: cronode (exit status 0)

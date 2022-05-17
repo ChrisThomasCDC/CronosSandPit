@@ -462,6 +462,69 @@ compare_replace_config() {
 
 
 
+# Imports An Existing Account
+ImportExistingAccount() {
+    IMP_ACCOUNT_NAME=$1
+    IMP_ACCOUNT_MNEMONIC=$2
+	IMP_ACCOUNT_BALANCE=$3
+    IMP_KEYRING=$4
+
+	if [ $# != 4 ]; then
+		echo "expected 4 arguments for initialize"
+		exit 1
+	fi # if [ $# != 3 ]; then
+
+ 	echo "Importing Account '$IMP_ACCOUNT_NAME'..."
+
+    cronosd keys add $IMP_ACCOUNT_NAME --recover --keyring-backend $IMP_KEYRING < <(echo "$IMP_ACCOUNT_MNEMONIC")
+
+    cronosd add-genesis-account $(cronosd keys show $IMP_ACCOUNT_NAME -a --keyring-backend $IMP_KEYRING) ${IMP_ACCOUNT_BALANCE:-1000000000000000000}${COIN:-cro} --keyring-backend $IMP_KEYRING
+
+    echo "Finished Importing Account '$IMP_ACCOUNT_NAME' ..."	
+
+	unset IMP_ACCOUNT_NAME
+	unset IMP_ACCOUNT_MNEMONIC
+	unset IMP_ACCOUNT_BALANCE
+	unset IMP_KEYRING	
+} # end of ImportExistingAccount(){
+
+
+
+
+AddAccount() {
+	ACCOUNT_NAME=$1
+	ACCOUNT_BALANCE=$2
+    KEYRING=$3
+
+	if [ $# != 3 ]; then
+		echo "expected 3 arguments for initialize"
+		exit 1
+	fi # if [ $# != 3 ]; then
+
+    echo "Generating Account '$ACCOUNT_NAME'..."
+
+    # create the key inside the keyring, we need to pipe everything to capture the mnemonic
+    cronosd keys add $ACCOUNT_NAME --keyring-backend $KEYRING > ~/account_$ACCOUNT_NAME 2>&1
+
+    #Only interested in the mnemonic itself which is the last thing in the file
+    cat ~/account_$ACCOUNT_NAME | tail --lines 1 > ~/account_$ACCOUNT_NAME.mnemonic
+
+    #Easy way to get the public address, i can get it from the above file but meh
+    cronosd keys show $ACCOUNT_NAME -a --keyring-backend $KEYRING > ~/account_$ACCOUNT_NAME.address 2>&1
+
+    #This seems new and fun!  export priv key for use elsewhere
+    cronosd keys unsafe-export-eth-key $ACCOUNT_NAME --keyring-backend $KEYRING > ~/account_$ACCOUNT_NAME.privkey 2>&1
+
+    # Add details to the chain
+    cronosd add-genesis-account $(cronosd keys show $ACCOUNT_NAME -a --keyring-backend $KEYRING) ${ACCOUNT_BALANCE:-1000000000000000000}${COIN:-cro} --keyring-backend $KEYRING
+
+	#output all required data to a CSV file
+    echo -e "$ACCOUNT_NAME,`cat ~/account_account01.address`,$ACCOUNT_BALANCE,`cat ~/account_account01.privkey`,`cat ~/account_account01.mnemonic`\n"   >> ~/accounts.csv
+
+    echo "Finished Generationg Account '$ACCOUNT_NAME' ..."
+} #End of AddAccount
+
+
 initialize() {
 	NODE_DIR=$1
 	BINARY=$2
@@ -483,27 +546,51 @@ initialize() {
 
 
 		$BINARY init ${NODE_NAME:-nonamenode} --chain-id=${CHAIN_ID:-bbteam_1337-1}
-    # Allocate genesis accounts (cosmos formatted addresses)
+		# Allocate genesis accounts (cosmos formatted addresses)
 
-    #cronosd add-genesis-account $(cronosd keys show $KEY -a) 10000000000000stake,100000000000000000000000000basecro --keyring-backend $KEYRING
-    $BINARY add-genesis-account $($BINARY keys show $KEY -a --keyring-backend $KEYRING) 100000000000000000000000000${COIN:-cro} --keyring-backend $KEYRING
+		#cronosd add-genesis-account $(cronosd keys show $KEY -a) 10000000000000stake,100000000000000000000000000basecro --keyring-backend $KEYRING
+		$BINARY add-genesis-account $($BINARY keys show $KEY -a --keyring-backend $KEYRING) 100000000000000000000000000${COIN:-cro} --keyring-backend $KEYRING
 
-    # Change parameter token denominations to basecro
-    cat ~/.cronos/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
-    cat ~/.cronos/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
-    cat ~/.cronos/config/genesis.json | jq '.app_state["crisis"]["constant_fee"]["denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
-    cat ~/.cronos/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
-    cat ~/.cronos/config/genesis.json | jq '.app_state["evm"]["params"]["evm_denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
-    cat ~/.cronos/config/genesis.json | jq '.app_state["inflation"]["params"]["mint_denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
+		# Change parameter token denominations to basecro
+		cat ~/.cronos/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
+		cat ~/.cronos/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
+		cat ~/.cronos/config/genesis.json | jq '.app_state["crisis"]["constant_fee"]["denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
+		cat ~/.cronos/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
+		cat ~/.cronos/config/genesis.json | jq '.app_state["evm"]["params"]["evm_denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
+		cat ~/.cronos/config/genesis.json | jq '.app_state["inflation"]["params"]["mint_denom"]="'${COIN:-cro}'"' > ~/.cronos/config/tmp_genesis.json && mv ~/.cronos/config/tmp_genesis.json ~/.cronos/config/genesis.json
+		
+		if [ ! -f "~/accounts.csv" ]; then
+			echo "no existing '~/accounts.csv' file found, initializing '$NUM_TEST_ACCOUNTS' accounts.."
+
+			echo -e "Name,Public Address,Balance,Private Key,Mnemonic\n"   > ~/accounts.csv
+			
+			for (( accountNumber = 1; accountNumber <= $NUM_TEST_ACCOUNTS; accountNumber++ ))
+			do  
+				AddAccount "account$accountNumber" "$TEST_ACCOUNT_BAL" $KEYRING
+			done  #  for (( accountNumber = 1; accountNumber <= $NUM_TEST_ACCOUNTS; accountNumber++ ))
+
+			echo "#### ACCOUNTS GENERATED - PLEASE SEE ~/accounts.csv ####"
+		else
+			echo "FOUND '~/accounts.csv' file, importing accounts.."
+
+
+			while IFS=, read -r accountName accountAddr accountBal accountPrvKey accountMnemonic
+			do
+				ImportExistingAccount "$accountName" "$accountMnemonic" $accountBal $KEYRING
+			done < ~/accounts.csv
+
+
+			echo "Accounts Imported!"
+		fi # if [ -f "~/accounts.csv" ]; then
 
 		# Sign genesis transaction
-    $BINARY gentx $KEY 10000000000000000000${COIN:-cro} --keyring-backend $KEYRING --chain-id $CHAIN_ID 
+		$BINARY gentx $KEY 10000000000000000000${COIN:-cro} --keyring-backend $KEYRING --chain-id $CHAIN_ID 
 
-    # Collect genesis tx
-    $BINARY collect-gentxs
+		# Collect genesis tx
+		$BINARY collect-gentxs
 
-    # Run this to ensure everything worked and that the genesis file is setup correctly
-    $BINARY validate-genesis
+		# Run this to ensure everything worked and that the genesis file is setup correctly
+		$BINARY validate-genesis
 	fi
 }
 
